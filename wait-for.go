@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func checkService(conn string) bool {
+func checkTCPService(conn string) bool {
 	timeout := time.Duration(1000 * time.Millisecond)
 	_, err := net.DialTimeout("tcp", conn, timeout)
 	if err != nil {
@@ -17,7 +17,16 @@ func checkService(conn string) bool {
 }
 
 func main() {
-	connStr := os.Args[1]
+	serviceType := os.Args[1]
+	connStr := os.Args[2]
+
+	var checkService func(conn string) bool
+	if serviceType == "tcp" {
+		checkService = checkTCPService
+	} else {
+		fmt.Println("No valid service name passed.")
+		os.Exit(1)
+	}
 
 	ticker := time.Tick(1000 * time.Millisecond)
 	for {
@@ -29,4 +38,3 @@ func main() {
 		<-ticker
 	}
 }
-
