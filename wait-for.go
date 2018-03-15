@@ -1,10 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"os"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 func checkTCPService(conn string) bool {
@@ -16,6 +19,28 @@ func checkTCPService(conn string) bool {
 	return true
 }
 
+func checkPGService(conn string) bool {
+	db, err := sql.Open("postgres", conn)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	rows, queryErr := db.Query("select version()")
+	if queryErr != nil {
+		fmt.Println(queryErr)
+		return false
+	}
+	for rows.Next() {
+		var version string
+		if err := rows.Scan(&version); err != nil {
+			fmt.Println(err)
+			return false
+		}
+		fmt.Printf("version is %s\n", version)
+	}
+	return true
+}
+
 func main() {
 	serviceType := os.Args[1]
 	connStr := os.Args[2]
@@ -23,6 +48,8 @@ func main() {
 	var checkService func(conn string) bool
 	if serviceType == "tcp" {
 		checkService = checkTCPService
+	} else if serviceType == "postgres" {
+		checkService = checkPGService
 	} else {
 		fmt.Println("No valid service name passed.")
 		os.Exit(1)
