@@ -59,6 +59,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Usage = "Given a service type and connection parameter it will wait till service is running"
+	app.Version = "0.1.0-beta"
 	app.Commands = []cli.Command{
 		{
 			Name:    "tcp",
