@@ -3,11 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/urfave/cli"
 )
 
 func checkTCPService(conn string) bool {
@@ -41,20 +43,7 @@ func checkPGService(conn string) bool {
 	return true
 }
 
-func main() {
-	serviceType := os.Args[1]
-	connStr := os.Args[2]
-
-	var checkService func(conn string) bool
-	if serviceType == "tcp" {
-		checkService = checkTCPService
-	} else if serviceType == "postgres" {
-		checkService = checkPGService
-	} else {
-		fmt.Println("No valid service name passed.")
-		os.Exit(1)
-	}
-
+func run(checkService func(conn string) bool, connStr string) {
 	ticker := time.Tick(1000 * time.Millisecond)
 	for {
 		if checkService(connStr) {
@@ -63,5 +52,38 @@ func main() {
 		}
 		fmt.Println(connStr, "is down")
 		<-ticker
+	}
+}
+
+func main() {
+
+	app := cli.NewApp()
+	app.Usage = "Given a service type and connection parameter it will wait till service is running"
+	app.Commands = []cli.Command{
+		{
+			Name:    "tcp",
+			Aliases: []string{"t"},
+			Usage:   "check a tcp connection",
+			Action: func(c *cli.Context) error {
+				fmt.Println("checking tcp connection: ", c.Args().First())
+				run(checkTCPService, c.Args().First())
+				return nil
+			},
+		},
+		{
+			Name:    "postgres",
+			Aliases: []string{"p"},
+			Usage:   "check a postgres database",
+			Action: func(c *cli.Context) error {
+				fmt.Println("checking postgres server: ", c.Args().First())
+				run(checkPGService, c.Args().First())
+				return nil
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
