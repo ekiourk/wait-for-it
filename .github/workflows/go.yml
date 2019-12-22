@@ -33,5 +33,5 @@ jobs:
     - name: Upload binary
       uses: actions/upload-artifact@v1
       with:
-        name: wait-for
-        path: .
+        name: linux_86 binary
+        path: ./wait-for
