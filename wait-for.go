@@ -1,90 +1,90 @@
 package main
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net"
 	"os"
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func checkTCPService(conn string) bool {
-	timeout := time.Duration(1000 * time.Millisecond)
+	timeout := time.Second
 	_, err := net.DialTimeout("tcp", conn, timeout)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func checkPGService(conn string) bool {
 	db, err := sql.Open("postgres", conn)
 	if err != nil {
-		fmt.Println(err)
+		log.Println("Error opening database connection:", err)
 		return false
 	}
-	rows, queryErr := db.Query("select version()")
-	if queryErr != nil {
-		fmt.Println(queryErr)
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	if err = db.PingContext(ctx); err != nil {
+		log.Println("Error pinging database:", err)
 		return false
 	}
-	for rows.Next() {
-		var version string
-		if err := rows.Scan(&version); err != nil {
-			fmt.Println(err)
-			return false
-		}
-		fmt.Printf("version is %s\n", version)
-	}
+
+	log.Println("Postgres is up")
 	return true
 }
 
-func run(checkService func(conn string) bool, connStr string) {
-	ticker := time.Tick(1000 * time.Millisecond)
+func run(ctx context.Context, checkService func(conn string) bool, connStr string) error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
 	for {
-		if checkService(connStr) {
-			fmt.Println(connStr, "is up")
-			os.Exit(0)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if checkService(connStr) {
+				log.Println(connStr, "is up")
+				return nil
+			}
+			log.Println(connStr, "is down")
 		}
-		fmt.Println(connStr, "is down")
-		<-ticker
 	}
 }
 
 func main() {
-
-	app := cli.NewApp()
-	app.Usage = "Given a service type and connection parameter it will wait till service is running"
-	app.Version = "0.1.0-beta"
-	app.Commands = []*cli.Command{
-		{
-			Name:    "tcp",
-			Aliases: []string{"t"},
-			Usage:   "check a tcp connection",
-			Action: func(c *cli.Context) error {
-				fmt.Println("checking tcp connection: ", c.Args().First())
-				run(checkTCPService, c.Args().First())
-				return nil
+	app := &cli.App{
+		Name:  "wait-for",
+		Usage: "Given a service type and connection parameter it will wait till service is running",
+		Commands: []*cli.Command{
+			{
+				Name:    "tcp",
+				Aliases: []string{"t"},
+				Usage:   "check a tcp connection",
+				Action: func(c *cli.Context) error {
+					connStr := c.Args().First()
+					log.Println("checking tcp connection:", connStr)
+					return run(c.Context, checkTCPService, connStr)
+				},
 			},
-		},
-		{
-			Name:    "postgres",
-			Aliases: []string{"p"},
-			Usage:   "check a postgres database",
-			Action: func(c *cli.Context) error {
-				fmt.Println("checking postgres server: ", c.Args().First())
-				run(checkPGService, c.Args().First())
-				return nil
+			{
+				Name:    "postgres",
+				Aliases: []string{"p"},
+				Usage:   "check a postgres database",
+				Action: func(c *cli.Context) error {
+					connStr := c.Args().First()
+					log.Println("checking postgres server:", connStr)
+					return run(c.Context, checkPGService, connStr)
+				},
 			},
 		},
 	}
 
-	err := app.Run(os.Args)
-	if err != nil {
+	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
 }
