@@ -1,0 +1,62 @@
+# .goreleaser.yml
+# Make sure to check the documentation at https://goreleaser.com
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./wait-for.go
+    binary: wait-for
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `go env GOOS` and `go env GOARCH`
+    # (e.g., `linux_amd64`, `darwin_arm64`)
+    # https://goreleaser.com/customization/name_template/
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    # remove commit messages that match these regexes
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - 'merge'
+      - 'Merge'
+release:
+  # The name of the release.
+  # Default is `{{.Tag}}`
+  name_template: "{{.ProjectName}}-{{.Version}}"
+  # If set to true, will not auto-publish the release.
+  # Default is false.
+  draft: false
+  # If set to true, will mark the release as a pre-release.
+  # Default is false.
+  prerelease: "auto"
+  # You can change the name of the GitHub release here.
+  github:
+    name: "Release {{.Version}}"
+
+# modelines, see http://vimdoc.sourceforge.net/htmldoc/options.html
+# vim:tabstop=2:shiftwidth=2:softtabstop=2:expandtab
