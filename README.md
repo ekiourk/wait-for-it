@@ -10,10 +10,10 @@ When working with microservices or containerized applications, it's a common sce
 
 You can download the latest pre-compiled binaries for your system from the [GitHub Releases page](https://github.com/fabiolb/wait-for/releases).
 
-For example, to download the `v1.0.0` release for Linux amd64, you could use `curl`:
+For example, to download the `v1.0.1` release for Linux amd64, you could use `curl`:
 
 ```bash
-curl -L -o wait-for https://github.com/fabiolb/wait-for/releases/download/v1.0.0/wait-for_linux_amd64
+curl -L -o wait-for https://github.com/fabiolb/wait-for/releases/download/v1.0.1/wait-for_linux_amd64
 chmod +x ./wait-for
 ```
 
