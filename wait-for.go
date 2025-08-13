@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/urfave/cli/v2"
 )
@@ -18,13 +19,17 @@ func checkTCPService(conn string) bool {
 	return err == nil
 }
 
-func checkPGService(conn string) bool {
-	db, err := sql.Open("postgres", conn)
+func checkDBService(driverName, conn string) bool {
+	db, err := sql.Open(driverName, conn)
 	if err != nil {
 		log.Println("Error opening database connection:", err)
 		return false
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("error closing database connection: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -34,7 +39,7 @@ func checkPGService(conn string) bool {
 		return false
 	}
 
-	log.Println("Postgres is up")
+	log.Println(driverName, "is up")
 	return true
 }
 
@@ -78,7 +83,23 @@ func main() {
 				Action: func(c *cli.Context) error {
 					connStr := c.Args().First()
 					log.Println("checking postgres server:", connStr)
-					return run(c.Context, checkPGService, connStr)
+					checkFunc := func(conn string) bool {
+						return checkDBService("postgres", conn)
+					}
+					return run(c.Context, checkFunc, connStr)
+				},
+			},
+			{
+				Name:    "mysql",
+				Aliases: []string{"m"},
+				Usage:   "check a mysql database",
+				Action: func(c *cli.Context) error {
+					connStr := c.Args().First()
+					log.Println("checking mysql server:", connStr)
+					checkFunc := func(conn string) bool {
+						return checkDBService("mysql", conn)
+					}
+					return run(c.Context, checkFunc, connStr)
 				},
 			},
 		},
