@@ -8,13 +8,15 @@ When working with microservices or containerized applications, it's a common sce
 
 ## Installation
 
-You can download the latest pre-compiled binaries for your system from the [GitHub Releases page](https://github.com/fabiolb/wait-for/releases).
+You can download the latest pre-compiled binaries for your system from the [GitHub Releases page](https://github.com/ekiourk/wait-for-it/releases).
 
 For example, to download the `v1.0.1` release for Linux amd64, you could use `curl`:
-
 ```bash
-curl -L -o wait-for https://github.com/fabiolb/wait-for/releases/download/v1.0.1/wait-for_linux_amd64
-chmod +x ./wait-for
+curl -L "https://github.com/ekiourk/wait-for-it/releases/download/v1.0.1/wait-for-it_Linux_x86_64.tar.gz" | tar -xz
+```
+Or try to detect automatically the version for your architecture
+```bash
+curl -L "https://github.com/ekiourk/wait-for-it/releases/download/v1.0.1/wait-for-it_$(uname -s)_$(uname -m | sed 's/aarch64/arm64/').tar.gz" | tar -xz
 ```
 
 ## Usage
@@ -66,7 +68,7 @@ To build `wait-for` from source, you'll need to have Go installed (version 1.22 
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/fabiolb/wait-for.git
+    git clone https://github.com/ekiourk/wait-for-it.git
     cd wait-for
     ```
 
